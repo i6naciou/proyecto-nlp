@@ -154,7 +154,8 @@ def main():
         if dispositivo == "cuda":
             torch.cuda.empty_cache()
 
-    resumir(resultados).to_csv(os.path.join(args.salida, "lora_folds.csv"), index=False)
+    nombre = "lora_folds_" + args.folds.replace(",", "-") + ".csv"
+    resumir(resultados).to_csv(os.path.join(args.salida, nombre), index=False)
 
 
 if __name__ == "__main__":
