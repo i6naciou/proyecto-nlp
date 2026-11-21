@@ -73,18 +73,18 @@ Uso de IA: la IA propuso cambios y el equipo decidió cuáles aplicar y por qué
 
 | Cambio | Por qué |
 |---|---|
-| Evaluación 5-fold con top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa |
+| Particiones 5-fold (las del paper) y métricas top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa. TF-IDF se evaluó en los 5 folds; LoRA solo en el fold 0, por tiempo de cómputo (~2 h por fold en una GTX 1650). Como en TF-IDF los 5 folds varían poco (± 0,6 %), un fold es representativo |
 | Normalización del texto (minúsculas, sin tildes ni símbolos, sin quitar stop words) | Mejor preprocesamiento según los autores; reduce ruido como "Condimentos" o "tecnologíco" |
 | Versión simplificada TF-IDF + SVM | El enunciado pide comparar con versiones simplificadas |
 | LoRA: 10 épocas en vez de 5 | En v0 el modelo seguía mejorando al terminar |
 | LoRA: tasa de aprendizaje mayor para la capa clasificadora | Esa capa parte desde cero y tiene 1.785 clases |
-| LoRA: ciclo de entrenamiento propio, textos tokenizados una vez | Más rápido y más simple de explicar |
+| LoRA: ciclo de entrenamiento propio en PyTorch, textos tokenizados una vez | Más simple de explicar que `Trainer` |
 
 **Cómo correrlo.**
 ```
 cd v1
 python tfidf_svm.py --csv ../data/CPN120.csv
-python lora_bert.py --csv ../data/CPN120.csv
+python lora_bert.py --csv ../data/CPN120.csv --folds 0
 ```
 
 ---
@@ -98,8 +98,9 @@ python lora_bert.py --csv ../data/CPN120.csv
 | GPT-4o one-shot (paper) | 5-fold | 17,8 % | — |
 | GPT-3.5 one-shot (paper) | 5-fold | 7,3 % | — |
 | **v0: BETO + LoRA** | 1 división 80/10/10 | 66,2 % | — |
-| **v1: TF-IDF + SVM** | 5-fold | 76,4 % ± 0,6 | 87,0 % |
-| **v1: BETO + LoRA** | 5-fold | *pendiente* | *pendiente* |
+| **v1: TF-IDF + SVM** | 5-fold (promedio) | 76,4 % ± 0,6 | 87,0 % |
+| **v1: TF-IDF + SVM** | solo fold 0 | 76,1 % | 86,8 % |
+| **v1: BETO + LoRA** | solo fold 0 | *pendiente* | *pendiente* |
 
 El fine-tuning de GPT-3.5 del paper costó US$87,77. Nuestros modelos corren localmente y gratis
 en una GTX 1650.
