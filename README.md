@@ -73,7 +73,7 @@ Uso de IA: la IA propuso cambios y el equipo decidió cuáles aplicar y por qué
 
 | Cambio | Por qué |
 |---|---|
-| Particiones 5-fold (las del paper) y métricas top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa. TF-IDF se evaluó en los 5 folds; LoRA solo en el fold 0, por tiempo de cómputo (~2 h por fold en una GTX 1650). Como en TF-IDF los 5 folds varían poco (± 0,6 %), un fold es representativo |
+| Particiones 5-fold (las del paper) y métricas top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa. TF-IDF y LoRA se evaluaron en los 5 folds completos (fold 0 en GTX 1650 y folds 1 al 4 en RTX 4070 Super en ~10 min con FP16). La varianza entre folds fue mínima (± 0,2 % en Top-1) |
 | Normalización del texto (minúsculas, sin tildes ni símbolos, sin quitar stop words) | Mejor preprocesamiento según los autores; reduce ruido como "Condimentos" o "tecnologíco" |
 | Versión simplificada TF-IDF + SVM | El enunciado pide comparar con versiones simplificadas |
 | LoRA: 10 épocas en vez de 5 | En v0 el modelo seguía mejorando al terminar |
@@ -84,7 +84,8 @@ Uso de IA: la IA propuso cambios y el equipo decidió cuáles aplicar y por qué
 ```
 cd v1
 python tfidf_svm.py --csv ../data/CPN120.csv
-python lora_bert.py --csv ../data/CPN120.csv --folds 0
+python lora_bert.py --csv ../data/CPN120.csv             # 5 folds completos
+python lora_bert.py --csv ../data/CPN120.csv --folds 0   # solo fold 0
 ```
 
 ---
@@ -100,17 +101,27 @@ python lora_bert.py --csv ../data/CPN120.csv --folds 0
 | **v0: BETO + LoRA** | 1 división 80/10/10 | 66,2 % | — |
 | **v1: TF-IDF + SVM** | 5-fold (promedio) | 76,4 % ± 0,6 | 87,0 % |
 | **v1: TF-IDF + SVM** | solo fold 0 | 76,1 % | 86,8 % |
-| **v1: BETO + LoRA** | solo fold 0 | **79,3 %** | **90,1 %** |
+| **v1: BETO + LoRA** | **5-fold (promedio)** | **79,2 % ± 0,2** | **90,5 % ± 0,5** |
+| **v1: BETO + LoRA** | solo fold 0 | 79,3 % | 90,1 % |
 
-F1 macro en el fold 0: TF-IDF 0,615 vs. LoRA v1 0,660, así que LoRA también acierta más en los
-códigos poco frecuentes.
+Resultados de LoRA v1 por fold (`v1/resultados_v1/lora_5folds_completo.csv`):
+- Fold 0: 79,3 % Top-1 | 90,1 % Top-5 | F1 macro 0,660
+- Fold 1: 79,2 % Top-1 | 90,4 % Top-5 | F1 macro 0,645
+- Fold 2: 79,2 % Top-1 | 90,7 % Top-5 | F1 macro 0,650
+- Fold 3: 79,2 % Top-1 | 91,2 % Top-5 | F1 macro 0,652
+- Fold 4: 78,9 % Top-1 | 90,0 % Top-5 | F1 macro 0,635
+- **Promedio ± std:** **79,2 % ± 0,2** (Top-1) | **90,5 % ± 0,5** (Top-5) | **0,649 ± 0,009** (F1 macro)
+
+F1 macro en 5-fold: TF-IDF ~0,615 vs. LoRA v1 **0,649 ± 0,009**, confirmando que LoRA clasifica mejor los códigos poco frecuentes en todas las particiones.
 
 **Sobre el sobreajuste.** La pérdida de entrenamiento de LoRA v1 bajó hasta 0,13 en la época 10,
 lo que hacía sospechar memorización (el paper reporta algo así con GPT-3.5 en CPN27: 91 % en
-train vs. 67 % en test). Sin embargo, en test LoRA v1 obtuvo 79,3 %, mejor que la v0 y que
+train vs. 67 % en test). Sin embargo, en test LoRA v1 promedia 79,2 % en los 5 folds, superando consistentemente a la v0 y a
 TF-IDF: la pérdida baja se explica en buena parte por las respuestas repetidas del dataset.
 
-Tiempo de entrenamiento LoRA v1 (fold 0): ~13 min por época, ~2 h 15 min en total (GTX 1650).
+Tiempos de entrenamiento:
+- Fold 0 en GTX 1650 (4 GB): ~13 min por época (~2 h 15 min total).
+- Folds 1 al 4 en RTX 4070 Super (12 GB, FP16): ~15–18 s por época (~2,5 min por fold, ~10 min en total).
 
 El fine-tuning de GPT-3.5 del paper costó US$87,77. Nuestros modelos corren localmente y gratis
-en una GTX 1650.
+en hardware de consumo.
