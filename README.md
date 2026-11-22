@@ -100,7 +100,17 @@ python lora_bert.py --csv ../data/CPN120.csv --folds 0
 | **v0: BETO + LoRA** | 1 división 80/10/10 | 66,2 % | — |
 | **v1: TF-IDF + SVM** | 5-fold (promedio) | 76,4 % ± 0,6 | 87,0 % |
 | **v1: TF-IDF + SVM** | solo fold 0 | 76,1 % | 86,8 % |
-| **v1: BETO + LoRA** | solo fold 0 | *pendiente* | *pendiente* |
+| **v1: BETO + LoRA** | solo fold 0 | **79,3 %** | **90,1 %** |
+
+F1 macro en el fold 0: TF-IDF 0,615 vs. LoRA v1 0,660, así que LoRA también acierta más en los
+códigos poco frecuentes.
+
+**Sobre el sobreajuste.** La pérdida de entrenamiento de LoRA v1 bajó hasta 0,13 en la época 10,
+lo que hacía sospechar memorización (el paper reporta algo así con GPT-3.5 en CPN27: 91 % en
+train vs. 67 % en test). Sin embargo, en test LoRA v1 obtuvo 79,3 %, mejor que la v0 y que
+TF-IDF: la pérdida baja se explica en buena parte por las respuestas repetidas del dataset.
+
+Tiempo de entrenamiento LoRA v1 (fold 0): ~13 min por época, ~2 h 15 min en total (GTX 1650).
 
 El fine-tuning de GPT-3.5 del paper costó US$87,77. Nuestros modelos corren localmente y gratis
 en una GTX 1650.
