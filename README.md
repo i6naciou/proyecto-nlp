@@ -122,6 +122,7 @@ TF-IDF: la pérdida baja se explica en buena parte por las respuestas repetidas 
 Tiempos de entrenamiento:
 - Fold 0 en GTX 1650 (4 GB): ~13 min por época (~2 h 15 min total).
 - Folds 1 al 4 en RTX 4070 Super (12 GB, FP16): ~15–18 s por época (~2,5 min por fold, ~10 min en total).
+- Folds 0 al 4 en RX 9070 XT (16 GB, RDNA 4, ROCm 10.2 en Windows): ~7–8 s por época (~1 min 15 s por fold, ~6 min 15 s los 5 folds completos).
 
 El fine-tuning de GPT-3.5 del paper costó US$87,77. Nuestros modelos corren localmente y gratis
 en hardware de consumo.
