@@ -117,6 +117,45 @@ python predict.py --concepto "granito" --respuesta "rugoso"
 ```
 Muestra los 5 códigos más probables con su probabilidad.
 
+### Arquitectura y Flujo del Sistema
+
+```mermaid
+flowchart TD
+    subgraph Entrada["1. Entrada"]
+        A["Concepto: 'granito'<br/>Respuesta: 'rugoso'"]
+    end
+
+    subgraph Preprocesamiento["2. Preprocesamiento (comun.py)"]
+        B["Normalización NFKD<br/>• Minúsculas<br/>• Quita tildes y símbolos<br/>• Conserva stop words"]
+        C["Texto formateado:<br/>'granito : rugoso'"]
+        A --> B --> C
+    end
+
+    subgraph Arquitectura["3. Modelo BETO + LoRA (v1/lora_bert.py)"]
+        D["BETO Base (110M parámetros)<br/>❄️ CONGELADO"]
+        E["Adaptadores LoRA (r=16, α=32)<br/>🔥 Capas Query y Value (1,73% parámetros)"]
+        F["Clasificador Lineal (768 ➔ 1.785 clases)<br/>🔥 Inicializado desde cero (LR = 3e-3)"]
+        C --> D
+        D --- E
+        D --> F
+    end
+
+    subgraph Salida["4. Inferencia Asistida (v1/predict.py)"]
+        G{"Probabilidad Top-1"}
+        H["Alta confianza (> 90%):<br/>✅ Aprobación automática<br/>(93,4% de acierto en 72,2% de los casos)"]
+        I["Confianza media/baja (< 90%):<br/>🔍 Revisión humana asistida<br/>(Candidatos Top-5: 90,5% de acierto)"]
+        F --> G
+        G -->|> 90%| H
+        G -->|≤ 90%| I
+    end
+```
+
+El flujo de trabajo se divide en 4 etapas:
+1. **Entrada:** Se recibe el par concepto-respuesta generado en estudios de memoria semántica (ej. *"granito"* y *"rugoso"*).
+2. **Preprocesamiento (`comun.py`):** Normaliza el texto a minúsculas, descompone caracteres NFKD para eliminar acentos diacríticos y descarta signos ortográficos ruidosos, manteniendo las *stop words* (clave en expresiones breves). Concatena en formato `"concepto : respuesta"`.
+3. **Adaptación Eficiente (`lora_bert.py`):** Se congela el modelo preentrenado BETO (110M parámetros) y se insertan adaptadores LoRA ($r=16$) en las capas de atención `query` y `value`. Se añade una cabeza clasificadora lineal de 1.785 clases con una tasa de aprendizaje mayor (`3e-3` vs `5e-4` en LoRA), optimizando únicamente el **1,73 % de los parámetros**.
+4. **Decisión Asistida (`predict.py`):** Se obtienen las probabilidades Softmax. Si la predicción más probable supera el 90 % de confianza (72,2 % de los casos), se aprueba automáticamente con un 93,4 % de precisión. En casos ambiguos o de cola larga, se ofrecen los 5 candidatos principales (Top-5), alcanzando un 90,5 % de cobertura para revisión humana asistida.
+
 ### Explicación del código
 
 **`comun.py`** — funciones compartidas por todos los modelos v1.
