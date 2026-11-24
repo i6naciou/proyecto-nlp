@@ -24,6 +24,36 @@ v1/
   resultados_v1/             métricas por fold
 ```
 
+## Instalación y requisitos
+
+El proyecto utiliza Python y las dependencias indicadas en
+`requirements.txt`.
+
+Desde la carpeta principal del repositorio, ejecutar:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Para verificar las dependencias instaladas:
+
+```powershell
+python -m pip check
+```
+
+El entrenamiento de BETO + LoRA puede utilizar aceleración
+por GPU mediante PyTorch. La configuración depende del
+hardware disponible y de la compatibilidad con CUDA o ROCm.
+
+El proyecto fue ejecutado en distintos equipos del grupo.
+Los tiempos de entrenamiento según la GPU utilizada se
+encuentran documentados en la sección correspondiente.
+
+Para reproducir los experimentos se recomienda mantener
+versiones compatibles de PyTorch, Transformers y PEFT.
+```
+
+
 ## Datos
 
 - 31.864 filas, 120 conceptos, 1.785 códigos.
