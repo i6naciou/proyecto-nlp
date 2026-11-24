@@ -10,9 +10,18 @@ Paper de referencia: Ramos, D., Chaigneau, S., Moreno, S., Canessa, E. (2025).
 ## Estructura
 
 ```
-data/CPN120.csv          datos entregados por el curso
-v0_cruda/                versión cruda generada por IA
-v1/                      versión mejorada (5-fold, normalización, comparación con TF-IDF)
+data/CPN120.csv              datos entregados por el curso
+requirements.txt             dependencias de Python
+v0_cruda/
+  entrenar_lora.py           versión cruda generada por IA
+  PROMPTS.md                 mensajes enviados a la IA, proceso y prompt reconstruido
+v1/
+  comun.py                   datos, normalización, particiones 5-fold y métricas
+  tfidf_svm.py               versión simplificada: TF-IDF + SVM
+  lora_bert.py               versión mejorada: BETO + LoRA
+  predict.py                 predicción para un concepto y una respuesta nuevos
+  analisis_errores.py/.md    reporte de resultados por fold
+  resultados_v1/             métricas por fold
 ```
 
 ## Datos
@@ -26,8 +35,10 @@ v1/                      versión mejorada (5-fold, normalización, comparación
 
 ## v0 — Versión cruda generada por IA
 
-**Cómo se generó (prompt).** No se escribió un prompt único: la v0 salió de una conversación
-con una IA (Claude, de Anthropic). Se le entregó:
+**Cómo se generó (prompt).** La v0 se generó exclusivamente mediante prompt engineering
+conversacional (5 mensajes) con una IA (Claude, de Anthropic). La transcripción de los mensajes,
+el proceso que siguió la IA y un prompt reconstruido a posteriori están en
+[`v0_cruda/PROMPTS.md`](v0_cruda/PROMPTS.md). Se le entregó:
 
 1. El enunciado del proyecto (PDF).
 2. El archivo `CPN120.csv`.
@@ -69,11 +80,20 @@ python entrenar_lora.py --csv ../data/CPN120.csv
 
 ## v1 — Mejoras
 
-Uso de IA: la IA propuso cambios y el equipo decidió cuáles aplicar y por qué.
+Uso de IA: la IA propuso cambios y el equipo decidió cuáles aplicar y por qué. Decisiones
+del equipo:
+
+- Buscar el paper de referencia y evaluar igual que los autores (5-fold, top-1 y top-5).
+- Correr LoRA primero solo en el fold 0, por tiempo de cómputo en la GTX 1650, y luego
+  completar los 5 folds en GPUs más potentes (RTX 4070 Super, RX 9070 XT, RTX 3060 Laptop).
+- Revisar si la pérdida de entrenamiento muy baja era sobreajuste antes de aceptar el resultado.
+- Comparar tiempos de entrenamiento entre GPUs.
+- Corregir `predict.py` para que use el mismo modelo, la misma normalización y el mismo formato
+  de entrada que el entrenamiento.
 
 | Cambio | Por qué |
 |---|---|
-| Particiones 5-fold (las del paper) y métricas top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa. TF-IDF y LoRA se evaluaron en los 5 folds completos (fold 0 en GTX 1650 y folds 1 al 4 en RTX 4070 Super en ~10 min con FP16). La varianza entre folds fue mínima (± 0,2 % en Top-1) |
+| Particiones 5-fold (las del paper) y métricas top-1, top-5 y F1 macro | Es como evalúa el paper; permite una comparación justa. TF-IDF y LoRA se evaluaron en los 5 folds completos (fold 0 en GTX 1650 y folds 1 al 4 en RTX 4070 Super en ~10 min con FP16). La variación entre folds fue mínima: ± 0,2 % en Top-1 para LoRA y ± 0,6 % para TF-IDF |
 | Normalización del texto (minúsculas, sin tildes ni símbolos, sin quitar stop words) | Mejor preprocesamiento según los autores; reduce ruido como "Condimentos" o "tecnologíco" |
 | Versión simplificada TF-IDF + SVM | El enunciado pide comparar con versiones simplificadas |
 | LoRA: 10 épocas en vez de 5 | En v0 el modelo seguía mejorando al terminar |
@@ -87,6 +107,55 @@ python tfidf_svm.py --csv ../data/CPN120.csv
 python lora_bert.py --csv ../data/CPN120.csv             # 5 folds completos
 python lora_bert.py --csv ../data/CPN120.csv --folds 0   # solo fold 0
 ```
+
+**Probar el modelo con una respuesta nueva** (`predict.py`). Primero hay que entrenar y guardar
+el modelo de un fold; después se le pasa un concepto y una respuesta:
+```
+cd v1
+python lora_bert.py --csv ../data/CPN120.csv --folds 0 --salida prueba_inferencia
+python predict.py --concepto "granito" --respuesta "rugoso"
+```
+Muestra los 5 códigos más probables con su probabilidad.
+
+### Explicación del código
+
+**`comun.py`** — funciones compartidas por todos los modelos v1.
+- `normalizar`: pasa a minúsculas, quita tildes y símbolos y deja solo letras, números y espacios.
+  No quita stop words, porque en frases tan cortas pueden cambiar el significado (criterio del paper).
+- `cargar_datos`: lee el CSV, elimina filas incompletas y arma la entrada del modelo como
+  `"concepto : respuesta"` normalizada. El concepto se incluye porque una misma respuesta puede
+  tener códigos distintos según el concepto.
+- `particiones`: divide los datos en 5 folds con `KFold` (semilla 42). Todos los modelos usan
+  exactamente las mismas particiones, así la comparación es justa.
+- `metricas`: calcula top-1 (el código más probable es el correcto), top-5 (el correcto está entre
+  los 5 más probables) y F1 macro (promedio del F1 de cada código, que da el mismo peso a los
+  códigos raros que a los frecuentes).
+
+**`tfidf_svm.py`** — versión simplificada.
+- `TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 5))`: representa cada texto por los trozos
+  de 2 a 5 letras que contiene, ponderados por TF-IDF (más peso a los trozos frecuentes en ese
+  texto y raros en el resto). Al trabajar con letras y no con palabras completas, tolera faltas de
+  ortografía ("responsbailidad") y variaciones ("miedoso" / "miedo").
+- `LinearSVC`: un clasificador lineal (una frontera por cada código). `decision_function` entrega
+  un puntaje por código, que se usa para el top-5.
+
+**`lora_bert.py`** — versión con PEFT.
+1. *Tokenización:* convierte todos los textos en números (tokens de BETO) una sola vez al inicio.
+2. *Modelo:* carga BETO con una capa clasificadora nueva de 1.785 salidas y le aplica LoRA
+   (`r=16`, capas `query` y `value` de la atención). BETO queda congelado y solo se entrenan los
+   adaptadores LoRA y la capa clasificadora (1,73 % de los parámetros).
+3. *Optimizador:* AdamW con dos tasas de aprendizaje, 5e-4 para LoRA y 3e-3 para la capa
+   clasificadora, que parte desde cero. La tasa sube durante el 6 % inicial de los pasos (warmup)
+   y después baja linealmente.
+4. *Entrenamiento:* 10 épocas en lotes de 64, con FP16 en GPU (`autocast` y `GradScaler`) para
+   usar menos memoria y entrenar más rápido.
+5. *Evaluación:* calcula las probabilidades de cada código para el fold de test y obtiene las
+   métricas de `comun.py`.
+6. *Guardado:* guarda las métricas, las probabilidades de cada fold y el modelo entrenado
+   (`checkpoint_fold_N`), que usa `predict.py`.
+
+**`predict.py`** — carga BETO, le aplica el adaptador LoRA guardado, normaliza el concepto y la
+respuesta igual que en el entrenamiento y muestra los códigos más probables.
 
 ---
 
@@ -112,7 +181,7 @@ Resultados de LoRA v1 por fold (`v1/resultados_v1/lora_5folds_completo.csv`):
 - Fold 4: 78,9 % Top-1 | 90,0 % Top-5 | F1 macro 0,635
 - **Promedio ± std:** **79,2 % ± 0,2** (Top-1) | **90,5 % ± 0,5** (Top-5) | **0,649 ± 0,009** (F1 macro)
 
-F1 macro en 5-fold: TF-IDF ~0,615 vs. LoRA v1 **0,649 ± 0,009**, confirmando que LoRA clasifica mejor los códigos poco frecuentes en todas las particiones.
+F1 macro en 5-fold: TF-IDF 0,608 ± 0,014 vs. LoRA v1 **0,649 ± 0,009**, confirmando que LoRA clasifica mejor los códigos poco frecuentes en todas las particiones.
 
 **Sobre el sobreajuste.** La pérdida de entrenamiento de LoRA v1 bajó hasta 0,13 en la época 10,
 lo que hacía sospechar memorización (el paper reporta algo así con GPT-3.5 en CPN27: 91 % en
@@ -127,3 +196,32 @@ Tiempos de entrenamiento:
 
 El fine-tuning de GPT-3.5 del paper costó US$87,77. Nuestros modelos corren localmente y gratis
 en hardware de consumo.
+
+---
+
+## Limitaciones
+
+Calculadas con las predicciones de LoRA v1 y TF-IDF en el fold 0 (6.373 ejemplos de test):
+
+| Situación | LoRA v1 | TF-IDF |
+|---|---|---|
+| La misma respuesta (concepto + respuesta) ya aparecía en entrenamiento (45 % del test) | 96,4 % | 95,7 % |
+| Respuesta nueva, no vista en entrenamiento (55 %) | **65,3 %** | 60,1 % |
+| Código con 100 o más ejemplos de entrenamiento | 92,6 % | 90,1 % |
+| Código con 1 a 4 ejemplos de entrenamiento | 56,1 % | 52,6 % |
+| Código que no aparece en entrenamiento (82 casos, 1,3 %) | 0 % | 0 % |
+
+- **Las respuestas repetidas inflan la accuracy global.** Cerca del 24 % de las filas del dataset
+  son repeticiones, y al dividir al azar la misma respuesta queda en entrenamiento y en test. Con
+  respuestas nuevas, LoRA acierta 65 %, y es ahí donde más supera a TF-IDF.
+- **Cola larga.** El 54 % de los códigos aparece menos de 10 veces en el dataset, y la accuracy
+  baja mucho para esos códigos. Un código que no aparece en entrenamiento nunca se puede predecir.
+- **Los errores suelen ser casi sinónimos**, por ejemplo `temor` → `miedo`, `conjunto` → `grupo`,
+  `frutas` → `verduras` o `astucia` → `valentia`.
+- **La confianza del modelo es útil.** Cuando la probabilidad del código predicho supera el 90 %
+  (72 % de los casos), acierta el 93,9 %; cuando es menor al 50 %, acierta alrededor del 22 %. Esto
+  permite una codificación asistida: aceptar las predicciones seguras y enviar las dudosas a
+  revisión humana.
+- **Comparación con el paper.** Nuestro CSV tiene 31.864 filas y el paper reporta 27.138 para
+  CPN120 (con los mismos 1.785 códigos), así que la comparación de cifras es aproximada.
+
