@@ -132,9 +132,9 @@ flowchart TD
     end
 
     subgraph Arquitectura["3. Modelo BETO + LoRA (v1/lora_bert.py)"]
-        D["BETO Base (110M parámetros)<br/>❄️ CONGELADO"]
-        E["Adaptadores LoRA (r=16, α=32)<br/>🔥 Capas Query y Value (1,73% parámetros)"]
-        F["Clasificador Lineal (768 ➔ 1.785 clases)<br/>🔥 Inicializado desde cero (LR = 3e-3)"]
+        D["BETO Base (110M parámetros)<br/>CONGELADO"]
+        E["Adaptadores LoRA (r=16, α=32)<br/>Capas Query y Value (1,73% parámetros)"]
+        F["Clasificador Lineal (768 ➔ 1.785 clases)<br/>Inicializado desde cero (LR = 3e-3)"]
         C --> D
         D --- E
         D --> F
@@ -142,8 +142,8 @@ flowchart TD
 
     subgraph Salida["4. Inferencia Asistida (v1/predict.py)"]
         G{"Probabilidad Top-1"}
-        H["Alta confianza (> 90%):<br/>✅ Aprobación automática<br/>(93,4% de acierto en 72,2% de los casos)"]
-        I["Confianza media/baja (< 90%):<br/>🔍 Revisión humana asistida<br/>(Candidatos Top-5: 90,5% de acierto)"]
+        H["Alta confianza (> 90%):<br/>Aprobación automática<br/>(93,4% de acierto en 72,2% de los casos)"]
+        I["Confianza media/baja (< 90%):<br/>Revisión humana asistida<br/>(Candidatos Top-5: 90,5% de acierto)"]
         F --> G
         G -->|> 90%| H
         G -->|≤ 90%| I
