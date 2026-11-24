@@ -211,6 +211,8 @@ Calculadas con las predicciones de LoRA v1 y TF-IDF en el fold 0 (6.373 ejemplos
 | Código con 1 a 4 ejemplos de entrenamiento | 56,1 % | 52,6 % |
 | Código que no aparece en entrenamiento (82 casos, 1,3 %) | 0 % | 0 % |
 
+*Nota sobre las corridas:* Esta tabla fue calculada sobre las predicciones de la primera ejecución del Fold 0 (65,3 % en respuestas nuevas). En el reporte complementario ([`v1/analisis_errores.md`](v1/analisis_errores.md)) se utilizan las predicciones de una segunda corrida completa independiente de los 5 folds ([`v1/resultados_v1/lora_5folds_corrida2_rx9070xt.csv`](v1/resultados_v1/lora_5folds_corrida2_rx9070xt.csv)), donde el Fold 0 obtuvo 64,8 % en respuestas nuevas y un top-1 global de 79,1 % (vs. 79,2 % oficial). Ambos resultados son consistentes dentro de un margen de ± 0,5 %.
+
 - **Las respuestas repetidas inflan la accuracy global.** Cerca del 24 % de las filas del dataset
   son repeticiones, y al dividir al azar la misma respuesta queda en entrenamiento y en test. Con
   respuestas nuevas, LoRA acierta 65 %, y es ahí donde más supera a TF-IDF.

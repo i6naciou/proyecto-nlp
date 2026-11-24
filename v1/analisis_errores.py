@@ -217,6 +217,7 @@ def generar_reporte_completo(
         if len(df_f0) > 0 and df_f0["acierto_svm"].notna().all():
             reporte.extend([
                 "\n## 3. Desempeño por Estrato: BETO + LoRA vs. TF-IDF + SVM",
+                "> **Nota metodológica sobre las predicciones (Secciones 3, 4 y 5):** Estos análisis se calculan a partir de los tensores de probabilidad predicha (`.npz`) de una segunda ejecución completa de validación cruzada (5 folds en RX 9070 XT, top-1 promedio 79,13 % y fold 0 = 78,96 %, disponible en `v1/resultados_v1/lora_5folds_corrida2_rx9070xt.csv`). Esto explica variaciones marginales de décimas frente al resumen oficial de la sección 1 (79,17 %).\n",
                 f"Comparación calculada sobre las predicciones reales del **Fold 0** ({len(df_f0):,} ejemplos de test) y el acumulado de **5 folds** de BETO + LoRA ({len(df_pred):,} ejemplos):\n",
                 "| Situación en Test | Casos (Fold 0) | LoRA v1 (Fold 0) | TF-IDF + SVM (Fold 0) | LoRA v1 (5 Folds) |",
                 "| :--- | :--- | :--- | :--- | :--- |",
@@ -378,7 +379,7 @@ def generar_reporte_completo(
         "\n## 6. Conclusiones Respaldadas por los Experimentos",
         "- **Ventaja de BETO + LoRA frente a TF-IDF + SVM en generalización:** mientras ambos modelos rinden ~96% cuando el par `(concepto, respuesta)` ya apareció en entrenamiento, **BETO + LoRA supera a TF-IDF + SVM por ~5 puntos porcentuales en respuestas nuevas no vistas** (64.8% vs. 60.1% en Fold 0) y en F1 Macro global (0.649 vs. 0.608 en 5-fold), gracias a las representaciones contextuales de BETO.",
         "- **Eficiencia de PEFT (LoRA):** se entrena solo el **1.73% de los parámetros** de BETO (1,962,489 de 113,186,034 parámetros), permitiendo completar los 5 folds en hardware local de consumo sin entrenar el modelo base completo (Full Fine-Tuning no fue evaluado en este proyecto).",
-        "- **Utilidad del Top-5 y de la probabilidad para codificación asistida:** el salto de ~79.2% (Top-1) a **~90.5% (Top-5)** y la alta precisión cuando la confianza supera el 90% (~93.6% de acierto en el 72.3% de los datos) permiten automatizar los casos de alta confianza y ofrecer 5 candidatos sugeridos (`v1/predict.py`) al codificador humano en los casos ambiguos o de cola larga.",
+        "- **Utilidad del Top-5 y de la probabilidad para codificación asistida:** el salto de ~79.2% (Top-1) a **~90.5% (Top-5)** y la alta precisión cuando la confianza supera el 90% (~93.4% de acierto en el 72.2% de los datos) permiten automatizar los casos de alta confianza y ofrecer 5 candidatos sugeridos (`v1/predict.py`) al codificador humano en los casos ambiguos o de cola larga.",
     ])
 
     dir_salida = os.path.dirname(salida_md_real)
