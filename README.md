@@ -51,7 +51,6 @@ encuentran documentados en la sección correspondiente.
 
 Para reproducir los experimentos se recomienda mantener
 versiones compatibles de PyTorch, Transformers y PEFT.
-```
 
 
 ## Datos
@@ -290,7 +289,7 @@ Calculadas con las predicciones de LoRA v1 y TF-IDF en el fold 0 (6.373 ejemplos
 - **Los errores suelen ser casi sinónimos**, por ejemplo `temor` → `miedo`, `conjunto` → `grupo`,
   `frutas` → `verduras` o `astucia` → `valentia`.
 - **La confianza del modelo es útil.** Cuando la probabilidad del código predicho supera el 90 %
-  (72 % de los casos), acierta el 93,9 %; cuando es menor al 50 %, acierta alrededor del 22 %. Esto
+  (72 % de los casos), acierta el 93,4 %; cuando es menor al 50 %, acierta alrededor del 21,2 %. Esto
   permite una codificación asistida: aceptar las predicciones seguras y enviar las dudosas a
   revisión humana.
 - **Comparación con el paper.** Nuestro CSV tiene 31.864 filas y el paper reporta 27.138 para
