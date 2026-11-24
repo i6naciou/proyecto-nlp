@@ -150,6 +150,10 @@ def main():
         # Guardar probabilidades del fold (para combinar con TF-IDF después)
         np.savez_compressed(os.path.join(args.salida, f"lora_probs_fold{fold}.npz"),
                             indices=te, probs=probs.astype(np.float16))
+        # Guardar el modelo entrenado para futuras predicciones
+        ruta_checkpoint = os.path.join(args.salida, f"checkpoint_fold_{fold}")
+        modelo.save_pretrained(ruta_checkpoint)
+        tok.save_pretrained(ruta_checkpoint)
         del modelo
         if dispositivo == "cuda":
             torch.cuda.empty_cache()
