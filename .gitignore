@@ -5,3 +5,10 @@ checkpoint-*/
 *.npz
 venv/
 venv/*
+
+# Resultados y checkpoints generados localmente
+v1/prueba_inferencia/
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
